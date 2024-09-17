@@ -1,49 +1,45 @@
-from django.test import TestCase  # type: ignore
-# Импортируем функцию reverse(), она понадобится для получения адреса страницы.
+from django.test import TestCase, Client  # type: ignore
 from django.urls import reverse  # type: ignore
 from django.contrib.auth import get_user_model  # type: ignore
 
-from notes.models import Note
 from notes.forms import NoteForm
+from .base_class import BaseClass
 
 User = get_user_model()
 
 
-class TestHomePage(TestCase):
-
-    HOME_URL = reverse('notes:home')
-    LIST_URL = reverse('notes:list')
+class TestContent(BaseClass, TestCase):
+    """Наследуемый класс для проверки контекста"""
 
     @classmethod
     def setUpTestData(cls):
-        cls.author = User.objects.create(username='Лев Толстой')
-        cls.reader = User.objects.create(username='Читатель простой')
-        cls.notes = Note.objects.create(
-            title='Заголовок3',
-            author=cls.author,
-            text='Текст комментария',
-        )
+        super().setUpTestData()
 
-        cls.notes = Note.objects.create(
-            title='Заголовок4',
-            author=cls.reader,
-            text='Текст ридера',
-        )
+    def setUp(self):
+        self.author_client = Client()
+        self.author_client.force_login(self.author)
 
-    def test_separated_note_has_object_list(self):
-        self.client.force_login(self.author)
+    def test_note_in_list_for_author(self):
+        """Тест, о том что отдельная заметка передаётся на страницу со
+        списком заметок в списке object_list в словаре context
+        """
+        response = self.author_client.get(self.LIST_URL)
+        object_list = response.context['object_list']
+        self.assertIn(self.notes, object_list)
+
+    def test_note_not_in_list_for_another_user(self):
+        """Тест: в список заметок одного пользователя не попадают
+        заметки другого пользователя
+        """
+        self.client.force_login(self.reader)
         response = self.client.get(self.LIST_URL)
         object_list = response.context['object_list']
-        notes_count = object_list.count()
-        self.assertEqual(notes_count, 1)
-
-    def test_author_notes_not_in_other_users_notes(self):
-        self.client.force_login(self.author)
-        response = self.client.get(self.LIST_URL)
-        self.assertNotIn('Заголовок4', response)
+        self.assertNotIn(self.notes, object_list)
 
     def test_authorized_client_has_form(self):
-        self.client.force_login(self.author)
+        """Тест: на страницы создания и редактирования заметки
+        передаются  формы
+        """
         urls = (
             ('notes:edit', self.notes.slug),
             ('notes:add', None),
@@ -51,6 +47,6 @@ class TestHomePage(TestCase):
         for name, args in urls:
             with self.subTest(name=name, args=args):
                 url = reverse(name, args=[args] if args else None)
-        response = self.client.get(url)
+                response = self.author_client.get(url)
         self.assertIn('form', response.context)
         self.assertIsInstance(response.context['form'], NoteForm)
