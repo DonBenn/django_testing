@@ -3,8 +3,15 @@ from datetime import datetime, timedelta
 import pytest
 from django.test.client import Client  # type: ignore
 from django.utils import timezone  # type: ignore
+from django.conf import settings  # type: ignore
+from django.urls import reverse  # type: ignore
 
 from news.models import News, Comment
+
+
+@pytest.fixture
+def client(client):
+    return client
 
 
 @pytest.fixture
@@ -41,9 +48,9 @@ def news(author):
 
 
 @pytest.fixture
-def ten_news_on_main_page(author):
+def news_count_on_home_page(author):
     today = datetime.today()
-    for element in range(10):
+    for element in range(settings.NEWS_COUNT_ON_HOME_PAGE):
         news = News.objects.create(
             title=f'Заголовок{element}',
             text=f'Текст заметки{element}',
@@ -63,7 +70,6 @@ def ten_comments_fixture(author, news):
         )
         comment.created = now + timedelta(days=index)
         comment.save()
-    return comment
 
 
 @pytest.fixture
@@ -77,12 +83,5 @@ def comment(author, news):
 
 
 @pytest.fixture
-def id_for_args(comment):
-    return (comment.id,)
-
-
-@pytest.fixture
-def form_data():
-    return {
-        'text': 'Новый текст New',
-    }
+def home_url():
+    return reverse('news:home')
