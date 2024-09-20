@@ -1,23 +1,13 @@
-from django.test import TestCase, Client  # type: ignore
-from django.urls import reverse  # type: ignore
 from django.contrib.auth import get_user_model  # type: ignore
 
 from notes.forms import NoteForm
-from .base_class import BaseClass
+from .fixtures import Fixtures
 
 User = get_user_model()
 
 
-class TestContent(BaseClass, TestCase):
+class TestContent(Fixtures):
     """Наследуемый класс для проверки контекста"""
-
-    @classmethod
-    def setUpTestData(cls):
-        super().setUpTestData()
-
-    def setUp(self):
-        self.author_client = Client()
-        self.author_client.force_login(self.author)
 
     def test_note_in_list_for_author(self):
         """Тест, о том что отдельная заметка передаётся на страницу со
@@ -41,12 +31,11 @@ class TestContent(BaseClass, TestCase):
         передаются  формы
         """
         urls = (
-            ('notes:edit', self.notes.slug),
-            ('notes:add', None),
+            (self.edit_url),
+            (self.add_url),
         )
-        for name, args in urls:
-            with self.subTest(name=name, args=args):
-                url = reverse(name, args=[args] if args else None)
-                response = self.author_client.get(url)
-        self.assertIn('form', response.context)
-        self.assertIsInstance(response.context['form'], NoteForm)
+        for name in urls:
+            with self.subTest(name=name):
+                response = self.author_client.get(name)
+                self.assertIn('form', response.context)
+                self.assertIsInstance(response.context['form'], NoteForm)

@@ -1,6 +1,5 @@
 import pytest
 from pytest_lazyfixture import lazy_fixture  # type: ignore
-from django.urls import reverse  # type: ignore
 from django.conf import settings  # type: ignore
 
 from news.forms import CommentForm
@@ -26,17 +25,16 @@ def test_news_order(news_count_on_home_page, client, home_url):
     """
     response = client.get(home_url)
     object_list = response.context['object_list']
-    all_dates = [news_10.date for news_10 in object_list]
+    all_dates = [news.date for news in object_list]
     sorted_dates = sorted(all_dates, reverse=True)
 
     assert all_dates == sorted_dates
 
 
-def test_comments_order(ten_comments_fixture, news, client):
+def test_comments_order(ten_comments_fixture, news, client, detail_url):
     """Тест: Комментарии на странице отдельной новости
     отсортированы в хронологическом порядке
     """
-    detail_url = reverse('news:detail', args=(news.id,))
     response = client.get(detail_url)
     assert 'news' in response.context
     news = response.context['news']
@@ -54,16 +52,14 @@ def test_comments_order(ten_comments_fixture, news, client):
     ),
 )
 def test_author_can_get_and_other_user_cant_get_form_for_comment(
-    news,
     parametrized_client,
     expected_form,
-    comment
+    edit_url
 ):
     """Тест: Анонимному пользователю недоступна форма для отправки комментария
     на странице отдельной новости, а авторизованному доступна.
     """
-    url = reverse('news:edit', args=(comment.id,))
-    response = parametrized_client.get(url)
+    response = parametrized_client.get(edit_url)
 
     if expected_form:
         assert 'form' in response.context

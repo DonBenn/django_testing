@@ -2,69 +2,55 @@ from http import HTTPStatus
 
 import pytest
 from pytest_lazyfixture import lazy_fixture  # type: ignore
-from django.urls import reverse  # type: ignore
 from pytest_django.asserts import assertRedirects  # type: ignore
+
+from .test_logic import FORM_DATA
 
 
 @pytest.mark.django_db
 @pytest.mark.parametrize(
-    'parametrized_client, expected_status',
+    'page, parametrized_client, expected_status',
     (
-        (lazy_fixture('author_client'), HTTPStatus.OK),
-        (lazy_fixture('not_author_client'), HTTPStatus.OK),
-        (lazy_fixture('client'), HTTPStatus.OK),
+        (lazy_fixture('home_url'), lazy_fixture('client'), HTTPStatus.OK),
+        (lazy_fixture('login_url'), lazy_fixture('client'), HTTPStatus.OK),
+        (lazy_fixture('logout_url'), lazy_fixture('client'), HTTPStatus.OK),
+        (lazy_fixture('signup_url'), lazy_fixture('client'), HTTPStatus.OK),
+        (lazy_fixture('detail_url'), lazy_fixture('client'), HTTPStatus.OK),
+        (lazy_fixture('edit_url'), lazy_fixture('author_client'),
+         HTTPStatus.OK),
+        (lazy_fixture('delete_url'), lazy_fixture('author_client'),
+         HTTPStatus.OK),
+        (lazy_fixture('edit_url'), lazy_fixture('not_author_client'),
+         HTTPStatus.NOT_FOUND),
+        (lazy_fixture('delete_url'), lazy_fixture('not_author_client'),
+         HTTPStatus.NOT_FOUND),
+
     ),
-)
-@pytest.mark.parametrize(
-    'name, args',
-    (('news:home', None),
-     ('users:login', None),
-     ('users:logout', None),
-     ('users:signup', None),
-     ('news:detail', True),
-     ('news:edit', True),
-     ('news:delete', True)
-     )
 )
 def test_home_and_registration_availability_for_anonymous_user(
-    client, name, news, args, comment, parametrized_client, expected_status,
-    not_author_client, author_client
+    parametrized_client, expected_status, page
 ):
     """Тест на доступность страниц разным пользователям"""
-    if args:
-        if 'detail' in name:
-            url = reverse(name, args=(news.id,))
-            response = parametrized_client.get(url)
-            assert response.status_code == expected_status
-        elif 'edit' or 'delete' in name:
-            url = reverse(name, args=(comment.id,))
-            response = client.get(url)
-            assert response.status_code == HTTPStatus.FOUND
-            response = not_author_client.get(url)
-            assert response.status_code == HTTPStatus.NOT_FOUND
-            response = author_client.get(url)
-            assert response.status_code == HTTPStatus.OK
-    else:
-        url = reverse(name)
-        response = parametrized_client.get(url)
-        assert response.status_code == expected_status
+    response = parametrized_client.get(page)
+    assert response.status_code == expected_status
 
 
 @pytest.mark.parametrize(
-    'name, args',
+    'name',
     (
-        ('news:edit', lazy_fixture('comment')),
-        ('news:delete', lazy_fixture('comment')),
+        (lazy_fixture('edit_url')),
+        (lazy_fixture('delete_url')),
+        (lazy_fixture('detail_url')),
     ),
 )
-def test_redirect(client, name, args):
-    """Тест: При попытке перейти на страницу редактирования или удаления
+def test_redirect(client, name, detail_url, edit_url, delete_url, login_url):
+    """Тест: При попытке перейти на страницу отправки, редактирования, удаления
     комментария анонимный пользователь перенаправляется на страницу
     авторизации
     """
-    login_url = reverse('users:login')
-    url = reverse(name, args=(args.id,))
-    expected_url = f'{login_url}?next={url}'
-    response = client.get(url)
-
+    expected_url = f'{login_url}?next={name}'
+    if name == edit_url or name == delete_url:
+        response = client.get(name)
+    elif name == detail_url:
+        response = client.post(name, data=FORM_DATA)
     assertRedirects(response, expected_url)

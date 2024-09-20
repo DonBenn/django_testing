@@ -10,11 +10,6 @@ from news.models import News, Comment
 
 
 @pytest.fixture
-def client(client):
-    return client
-
-
-@pytest.fixture
 def author(django_user_model):
     return django_user_model.objects.create(username='Автор')
 
@@ -51,12 +46,11 @@ def news(author):
 def news_count_on_home_page(author):
     today = datetime.today()
     for element in range(settings.NEWS_COUNT_ON_HOME_PAGE):
-        news = News.objects.create(
+        News.objects.create(
             title=f'Заголовок{element}',
             text=f'Текст заметки{element}',
             date=today - timedelta(days=element)
         )
-    return news
 
 
 @pytest.fixture
@@ -85,3 +79,33 @@ def comment(author, news):
 @pytest.fixture
 def home_url():
     return reverse('news:home')
+
+
+@pytest.fixture
+def detail_url(news):
+    return reverse('news:detail', args=(news.id,))
+
+
+@pytest.fixture
+def edit_url(comment):
+    return reverse('news:edit', args=(comment.id,))
+
+
+@pytest.fixture
+def delete_url(comment):
+    return reverse('news:delete', args=(comment.id,))
+
+
+@pytest.fixture
+def login_url():
+    return reverse('users:login')
+
+
+@pytest.fixture
+def logout_url():
+    return reverse('users:logout')
+
+
+@pytest.fixture
+def signup_url():
+    return reverse('users:signup')
