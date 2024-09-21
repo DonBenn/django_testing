@@ -1,12 +1,12 @@
 from django.contrib.auth import get_user_model  # type: ignore
 
 from notes.forms import NoteForm
-from .fixtures import Fixtures
+from .base_fixtures import NotesBaseTestCase
 
 User = get_user_model()
 
 
-class TestContent(Fixtures):
+class TestContent(NotesBaseTestCase):
     """Наследуемый класс для проверки контекста"""
 
     def test_note_in_list_for_author(self):
@@ -21,8 +21,7 @@ class TestContent(Fixtures):
         """Тест: в список заметок одного пользователя не попадают
         заметки другого пользователя
         """
-        self.client.force_login(self.reader)
-        response = self.client.get(self.LIST_URL)
+        response = self.reader_client.get(self.LIST_URL)
         object_list = response.context['object_list']
         self.assertNotIn(self.notes, object_list)
 

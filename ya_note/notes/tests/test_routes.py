@@ -2,12 +2,12 @@ from http import HTTPStatus
 
 from django.contrib.auth import get_user_model  # type: ignore
 
-from .fixtures import Fixtures
+from .base_fixtures import NotesBaseTestCase
 
 User = get_user_model()
 
 
-class TestRoutes(Fixtures):
+class TestRoutes(NotesBaseTestCase):
     """Наследуемый класс для проверки маршрутов"""
 
     def test_all_pages_availability(self):
@@ -17,20 +17,34 @@ class TestRoutes(Fixtures):
         all_urls = (
             (self.home_url, self.client, HTTPStatus.OK),
             (self.home_url, self.author_client, HTTPStatus.OK),
+            (self.home_url, self.reader_client, HTTPStatus.OK),
             (self.login_url, self.client, HTTPStatus.OK),
             (self.login_url, self.author_client, HTTPStatus.OK),
-            (self.logout_url, self.client, HTTPStatus.OK),
+            (self.login_url, self.reader_client, HTTPStatus.OK),
             (self.signup_url, self.client, HTTPStatus.OK),
             (self.signup_url, self.author_client, HTTPStatus.OK),
+            (self.signup_url, self.reader_client, HTTPStatus.OK),
+            (self.list_url, self.client, HTTPStatus.FOUND),
             (self.list_url, self.author_client, HTTPStatus.OK),
+            (self.list_url, self.reader_client, HTTPStatus.OK),
+            (self.add_url, self.client, HTTPStatus.FOUND),
             (self.add_url, self.author_client, HTTPStatus.OK),
+            (self.add_url, self.reader_client, HTTPStatus.OK),
+            (self.success_url, self.client, HTTPStatus.FOUND),
             (self.success_url, self.author_client, HTTPStatus.OK),
+            (self.success_url, self.author_client, HTTPStatus.OK),
+            (self.edit_url, self.client, HTTPStatus.FOUND),
             (self.edit_url, self.author_client, HTTPStatus.OK),
             (self.edit_url, self.reader_client, HTTPStatus.NOT_FOUND),
+            (self.delete_url, self.client, HTTPStatus.FOUND),
             (self.delete_url, self.author_client, HTTPStatus.OK),
             (self.delete_url, self.reader_client, HTTPStatus.NOT_FOUND),
+            (self.detail_url, self.client, HTTPStatus.FOUND),
             (self.detail_url, self.author_client, HTTPStatus.OK),
             (self.detail_url, self.reader_client, HTTPStatus.NOT_FOUND),
+            (self.logout_url, self.client, HTTPStatus.OK),
+            (self.logout_url, self.author_client, HTTPStatus.OK),
+            (self.logout_url, self.reader_client, HTTPStatus.OK),
         )
         for url, user, status in all_urls:
             with self.subTest(url=url, status=status):

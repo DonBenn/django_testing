@@ -1,7 +1,6 @@
 from http import HTTPStatus
 
-from django.utils import timezone  # type: ignore
-from pytest_django.asserts import (assertFormError)  # type: ignore
+from pytest_django.asserts import assertFormError  # type: ignore
 
 from news.forms import WARNING, BAD_WORDS
 from news.models import Comment
@@ -22,16 +21,18 @@ def test_anonymous_user_cant_create_comment(client, detail_url):
 
 def test_author_can_create_comment(author_client, author, news, detail_url):
     """Авторизованный пользователь может отправить комментарий."""
-    comments_at_the_start_test = list(
-        Comment.objects.filter(news=news).exclude(created__lte=timezone.now())
-    )
+    comments_at_the_start_test = set(Comment.objects.all())
     author_client.post(detail_url, data=FORM_DATA)
-    comments_at_the_end_test = list(Comment.objects.filter(news=news))
+    comments_at_the_end_test = set(Comment.objects.all())
+    set_difference = comments_at_the_end_test.difference(
+        comments_at_the_start_test
+    )
+    comment_from_db = set_difference.pop()
 
     assert len(comments_at_the_end_test) == len(comments_at_the_start_test) + 1
-    assert comments_at_the_end_test[0].text == FORM_DATA['text']
-    assert comments_at_the_end_test[0].news == news
-    assert comments_at_the_end_test[0].author == author
+    assert comment_from_db.text == FORM_DATA['text']
+    assert comment_from_db.news == news
+    assert comment_from_db.author == author
 
 
 def test_author_can_edit_comment(
@@ -42,14 +43,13 @@ def test_author_can_edit_comment(
     comments_at_the_start_test = Comment.objects.count()
     author_client.post(edit_url, data=FORM_DATA)
     comments_at_the_end_test = Comment.objects.count()
-    comment_request = Comment.objects.filter(news=news)
-    comment_from_db = list(comment_request)
+    comment_from_db = Comment.objects.get(id=comment.id)
 
     assert comments_at_the_start_test == comments_at_the_end_test
-    assert comment_from_db[0].text == FORM_DATA['text']
-    assert comment_from_db[0].news == news
-    assert comment_from_db[0].author == author
-    assert comment_from_db[0].created == comment.created
+    assert comment_from_db.text == FORM_DATA['text']
+    assert comment_from_db.news == news
+    assert comment_from_db.author == author
+    assert comment_from_db.created == comment.created
 
 
 def test_other_user_cant_edit_comment(
@@ -76,15 +76,18 @@ def test_author_can_delete_comment(author_client, comment, delete_url):
     свои комментарии.
     """
     comments_at_the_start_test = Comment.objects.count()
+    comment_id = comment.id
     author_client.post(delete_url)
     comments_at_the_end_test = Comment.objects.count()
+
     assert comments_at_the_end_test == comments_at_the_start_test - 1
+    assert Comment.objects.filter(id=comment_id).exists() is False
 
 
 def test_other_user_cant_delete_comment(
         not_author_client, comment, news, author, delete_url
 ):
-    """Авторизованный пользователь не может или удалять
+    """Авторизованный пользователь не может удалять
     чужие комментарии.
     """
     comments_at_the_start_test = Comment.objects.count()

@@ -7,7 +7,7 @@ from notes.models import Note
 User = get_user_model()
 
 
-class Fixtures(TestCase):
+class NotesBaseTestCase(TestCase):
     """Базовый класс для фикстур"""
 
     HOME_URL = reverse('notes:home')

@@ -2,15 +2,14 @@ from http import HTTPStatus  # type: ignore
 from pytils.translit import slugify  # type: ignore
 
 from django.contrib.auth import get_user_model  # type: ignore
-
 from notes.models import Note
 from notes.forms import WARNING
-from .fixtures import Fixtures
+from .base_fixtures import NotesBaseTestCase
 
 User = get_user_model()
 
 
-class TestLogic(Fixtures):
+class TestLogic(NotesBaseTestCase):
     """Наследуемый класс для проверки логики"""
 
     @classmethod
@@ -39,8 +38,8 @@ class TestLogic(Fixtures):
         notes_set_before_post = set(Note.objects.all())
         self.author_client.post(self.add_url, data=self.form_data)
         notes_set_after_post = set(Note.objects.all())
-        sam_note = notes_set_after_post.difference(notes_set_before_post)
-        new_note = sam_note.pop()
+        set_difference = notes_set_after_post.difference(notes_set_before_post)
+        new_note = set_difference.pop()
 
         self.assertEqual(len(notes_set_before_post),
                          len(notes_set_after_post) - 1)
@@ -81,10 +80,12 @@ class TestLogic(Fixtures):
 
     def test_author_can_delete_note(self):
         """Тест: Пользователь может  удалять свои заметки"""
+        note_slug = self.notes.slug
         notes_count_before_post = Note.objects.count()
         response = self.author_client.delete(self.delete_url)
         notes_count_after_post = Note.objects.count()
 
+        self.assertFalse(Note.objects.filter(slug=note_slug).exists())
         self.assertEqual(notes_count_before_post - 1, notes_count_after_post)
         self.assertRedirects(response, self.success_url)
 
