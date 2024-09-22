@@ -2,6 +2,7 @@ from http import HTTPStatus  # type: ignore
 from pytils.translit import slugify  # type: ignore
 
 from django.contrib.auth import get_user_model  # type: ignore
+
 from notes.models import Note
 from notes.forms import WARNING
 from .base_fixtures import NotesBaseTestCase
